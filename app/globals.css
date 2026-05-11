@@ -1,26 +1,59 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-bg: #FDFBF7;
+  --color-bg-elevated: #FFFFFF;
+  --color-bg-subtle: #F5F1E8;
+  --color-ink: #1A1814;
+  --color-ink-muted: #6B6760;
+  --color-ink-soft: #9C988F;
+  --color-line: #ECE7DC;
+  --color-line-strong: #D6CFC2;
+  --color-accent: #FF6B6B;
+  --color-accent-warm: #FFA552;
+  --color-accent-cool: #7C6FE8;
+  --color-danger-bg: #FDF0F0;
+  --color-danger-ink: #9B2C2C;
+  --gradient-warm: linear-gradient(135deg, #FF6B6B 0%, #FFA552 100%);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-ink);
+  --font-sans: var(--font-bricolage);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-bricolage), system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--color-accent-warm) !important;
+  box-shadow: 0 0 0 3px rgba(255, 165, 82, 0.18);
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeUp {
+  animation: fadeUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
