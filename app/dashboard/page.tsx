@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import SkillModal from "./SkillModal";
+import SkillCard from "./SkillCard";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -6,15 +8,30 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("username, display_name")
-    .eq("id", user!.id)
-    .single();
+  const [{ data: profile }, { data: skills }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("username, display_name")
+      .eq("id", user!.id)
+      .single(),
+    supabase
+      .from("skills")
+      .select("*")
+      .eq("user_id", user!.id)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const activeSkills = skills?.filter((s) => s.status === "active") ?? [];
+  const completedSkills = skills?.filter((s) => s.status === "completed") ?? [];
+  const totalPoints = completedSkills.reduce(
+    (sum, s) => sum + (s.points_earned ?? 0),
+    0
+  );
 
   return (
     <main className="min-h-screen" style={{ background: "var(--color-bg)" }}>
       <div className="max-w-3xl mx-auto px-6 py-8">
+        {/* Header */}
         <header className="flex items-center justify-between mb-12">
           <div className="flex items-center gap-2.5">
             <span
@@ -53,74 +70,98 @@ export default async function DashboardPage() {
         </header>
 
         <div className="animate-fadeUp">
-          <p
-            className="text-sm mb-2"
-            style={{ color: "var(--color-ink-muted)" }}
-          >
+          {/* Greeting */}
+          <p className="text-sm mb-2" style={{ color: "var(--color-ink-muted)" }}>
             Servus
           </p>
           <h1
-            className="text-4xl font-medium tracking-tight mb-10"
+            className="text-4xl font-medium tracking-tight mb-8"
             style={{ color: "var(--color-ink)" }}
           >
             {profile?.display_name ?? user?.email?.split("@")[0]}
           </h1>
 
-          <div
-            className="rounded-3xl p-8"
-            style={{
-              background: "var(--color-bg-elevated)",
-              border: "1px solid var(--color-line)",
-            }}
-          >
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-3 mb-10">
+            {(
+              [
+                { label: "Gesamtpunkte", value: totalPoints },
+                { label: "Aktive Skills", value: activeSkills.length },
+                { label: "Abgeschlossen", value: completedSkills.length },
+              ] as const
+            ).map(({ label, value }) => (
+              <div
+                key={label}
+                className="rounded-2xl p-4"
+                style={{
+                  background: "var(--color-bg-elevated)",
+                  border: "1px solid var(--color-line)",
+                }}
+              >
+                <p
+                  className="text-2xl font-medium tabular-nums"
+                  style={{ color: "var(--color-ink)" }}
+                >
+                  {value}
+                </p>
+                <p
+                  className="text-xs mt-0.5"
+                  style={{ color: "var(--color-ink-soft)" }}
+                >
+                  {label}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Active skills */}
+          <div className="flex items-center justify-between mb-4">
             <h2
-              className="text-lg font-medium tracking-tight mb-1"
+              className="text-lg font-medium tracking-tight"
               style={{ color: "var(--color-ink)" }}
             >
               Deine Skills
             </h2>
-            <p
-              className="text-sm mb-6"
-              style={{ color: "var(--color-ink-muted)" }}
-            >
-              Hier landen deine Skills. Bauen wir im nächsten Milestone.
-            </p>
+            <SkillModal />
+          </div>
 
+          {activeSkills.length === 0 ? (
             <div
-              className="rounded-2xl border border-dashed p-8 text-center"
+              className="rounded-3xl border border-dashed p-10 text-center mb-6"
               style={{ borderColor: "var(--color-line-strong)" }}
             >
               <p
-                className="text-sm"
+                className="text-sm mb-5"
                 style={{ color: "var(--color-ink-soft)" }}
               >
                 Noch leer. Bald liegen hier Jonglieren, Italienisch und Co.
               </p>
+              <SkillModal />
             </div>
-          </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 gap-3 mb-6">
+              {activeSkills.map((skill) => (
+                <SkillCard key={skill.id} skill={skill} />
+              ))}
+            </div>
+          )}
 
-          <div
-            className="mt-6 rounded-2xl p-5 text-sm space-y-1.5"
-            style={{
-              background: "var(--color-bg-subtle)",
-              color: "var(--color-ink-muted)",
-            }}
-          >
-            <p
-              className="text-xs uppercase tracking-wider mb-2"
-              style={{ color: "var(--color-ink-soft)" }}
-            >
-              Eingeloggt als
-            </p>
-            <p>
-              <span style={{ color: "var(--color-ink-soft)" }}>Email:</span>{" "}
-              {user?.email}
-            </p>
-            <p>
-              <span style={{ color: "var(--color-ink-soft)" }}>Username:</span>{" "}
-              {profile?.username}
-            </p>
-          </div>
+          {/* Completed skills */}
+          {completedSkills.length > 0 && (
+            <div className="mt-8">
+              <h2
+                className="text-xs font-medium uppercase tracking-wider mb-3"
+                style={{ color: "var(--color-ink-soft)" }}
+              >
+                Abgeschlossen
+              </h2>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {completedSkills.map((skill) => (
+                  <SkillCard key={skill.id} skill={skill} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </main>
