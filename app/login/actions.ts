@@ -21,7 +21,9 @@ export async function login(formData: FormData) {
     redirect("/dashboard");
   } catch (e) {
     unstable_rethrow(e);
-    redirect(`/login?error=${encodeURIComponent("Verbindungsfehler. Bitte versuche es erneut.")}`);
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "MISSING";
+    const msg = e instanceof Error ? e.message : String(e);
+    redirect(`/login?error=${encodeURIComponent(`[${url.slice(0, 30)}] ${msg}`)}`);
   }
 }
 
