@@ -3,46 +3,52 @@
 import { useEffect, useState } from "react";
 
 export default function InstallPrompt() {
-  const [prompt, setPrompt] = useState<Event & { prompt?: () => Promise<void> } | null>(null);
+  const [show, setShow] = useState(false);
   const [isIos, setIsIos] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  const [installed, setInstalled] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
-    // Already running as installed PWA
-    if (window.matchMedia("(display-mode: standalone)").matches) {
-      setInstalled(true);
-      return;
-    }
+    // Already installed as PWA
+    if (window.matchMedia("(display-mode: standalone)").matches) return;
+    // Already dismissed
+    if (localStorage.getItem("install-dismissed")) return;
 
-    // iOS detection
-    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    const safari = /safari/i.test(navigator.userAgent) && !/chrome/i.test(navigator.userAgent);
-    if (ios && safari) setIsIos(true);
+    const ua = navigator.userAgent;
+    const ios = /iphone|ipad|ipod/i.test(ua);
+    const safari = /safari/i.test(ua) && !/crios|fxios|chrome/i.test(ua);
+    setIsIos(ios && safari);
+    setShow(true);
 
-    // Android/Chrome install prompt
-    const handler = (e: Event) => {
+    const handler = (e: any) => {
       e.preventDefault();
-      setPrompt(e as Event & { prompt?: () => Promise<void> });
+      setDeferredPrompt(e);
     };
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
-  if (installed || dismissed) return null;
-  if (!prompt && !isIos) return null;
+  function dismiss() {
+    localStorage.setItem("install-dismissed", "1");
+    setShow(false);
+  }
+
+  async function install() {
+    if (deferredPrompt) {
+      await deferredPrompt.prompt();
+      setShow(false);
+    }
+  }
+
+  if (!show) return null;
 
   return (
-    <div
-      className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-6 pt-4 animate-fadeUp"
-      style={{ background: "var(--color-bg)" }}
-    >
+    <div className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-6 pt-2 animate-fadeUp">
       <div
         className="max-w-sm mx-auto rounded-3xl p-5"
         style={{
           background: "var(--color-bg-elevated)",
           border: "1px solid var(--color-line)",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.10)",
         }}
       >
         <div className="flex items-start gap-3">
@@ -58,21 +64,16 @@ export default function InstallPrompt() {
             <p className="font-medium text-sm mb-0.5" style={{ color: "var(--color-ink)" }}>
               Skill Issue installieren
             </p>
-            {isIos ? (
-              <p className="text-xs leading-relaxed" style={{ color: "var(--color-ink-muted)" }}>
-                Tippe auf{" "}
-                <span style={{ color: "var(--color-ink)" }}>Teilen</span>
-                {" "}→{" "}
-                <span style={{ color: "var(--color-ink)" }}>„Zum Home-Bildschirm"</span>
-              </p>
-            ) : (
-              <p className="text-xs" style={{ color: "var(--color-ink-muted)" }}>
-                Als App auf dem Startbildschirm speichern
-              </p>
-            )}
+            <p className="text-xs leading-relaxed" style={{ color: "var(--color-ink-muted)" }}>
+              {isIos
+                ? <>Teilen <span style={{ color: "var(--color-ink)" }}>↑</span> → „Zum Home-Bildschirm"</>
+                : deferredPrompt
+                ? "Als App auf dem Startbildschirm speichern"
+                : <>Menü <span style={{ color: "var(--color-ink)" }}>⋮</span> → „App installieren"</>}
+            </p>
           </div>
           <button
-            onClick={() => setDismissed(true)}
+            onClick={dismiss}
             className="text-lg leading-none shrink-0 transition hover:opacity-60 cursor-pointer"
             style={{ color: "var(--color-ink-soft)" }}
           >
@@ -80,12 +81,9 @@ export default function InstallPrompt() {
           </button>
         </div>
 
-        {!isIos && prompt && (
+        {deferredPrompt && (
           <button
-            onClick={async () => {
-              await (prompt as any).prompt();
-              setPrompt(null);
-            }}
+            onClick={install}
             className="mt-4 w-full rounded-xl text-white font-medium py-2.5 text-sm transition active:scale-[0.985] cursor-pointer"
             style={{ background: "var(--gradient-warm)" }}
           >
