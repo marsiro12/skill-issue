@@ -17,17 +17,8 @@ export default function Icon() {
           borderRadius: "7px",
         }}
       >
-        <svg
-          viewBox="0 0 24 24"
-          width="20"
-          height="20"
-          fill="none"
-          stroke="white"
-          stroke-width="2.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M13 2 L4 14 L11 14 L11 22 L20 10 L13 10 Z" />
+        <svg viewBox="0 0 24 24" width="20" height="20">
+          <path d="M13 2 L4 14 L11 14 L11 22 L20 10 L13 10 Z" fill="white" />
         </svg>
       </div>
     ),
