@@ -77,6 +77,7 @@ export default async function LoginPage({
                 type="email"
                 required
                 autoFocus
+                autoComplete="email"
                 placeholder="du@beispiel.de"
                 className="w-full rounded-xl px-3.5 py-2.5 text-sm transition outline-none"
                 style={{
@@ -100,6 +101,7 @@ export default async function LoginPage({
                 type="password"
                 required
                 minLength={6}
+                autoComplete="current-password"
                 className="w-full rounded-xl px-3.5 py-2.5 text-sm transition outline-none"
                 style={{
                   background: "var(--color-bg)",
