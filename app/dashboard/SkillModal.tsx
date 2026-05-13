@@ -11,12 +11,15 @@ type Skill = {
   deadline: string;
 };
 
+type Prefill = { name?: string; description?: string | null };
+
 type Props = {
   skill?: Skill;
   trigger?: React.ReactNode;
+  prefill?: Prefill;
 };
 
-export default function SkillModal({ skill, trigger }: Props) {
+export default function SkillModal({ skill, trigger, prefill }: Props) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -114,7 +117,7 @@ export default function SkillModal({ skill, trigger }: Props) {
                   type="text"
                   required
                   maxLength={100}
-                  defaultValue={skill?.name}
+                  defaultValue={skill?.name ?? prefill?.name ?? ""}
                   placeholder="z.B. Jonglieren mit 3 Bällen"
                   className="w-full rounded-xl px-3.5 py-2.5 text-sm transition outline-none"
                   style={{
@@ -141,7 +144,7 @@ export default function SkillModal({ skill, trigger }: Props) {
                   name="description"
                   maxLength={500}
                   rows={3}
-                  defaultValue={skill?.description ?? ""}
+                  defaultValue={skill?.description ?? prefill?.description ?? ""}
                   placeholder="Was genau willst du können?"
                   className="w-full rounded-xl px-3.5 py-2.5 text-sm transition outline-none resize-none"
                   style={{

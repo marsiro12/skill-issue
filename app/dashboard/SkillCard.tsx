@@ -14,7 +14,10 @@ type Skill = {
   completed_at: string | null;
   points_earned: number | null;
   created_at: string;
+  source_skill_id: string | null;
 };
+
+type Coparticipant = { username: string; display_name: string | null };
 
 function getDaysLeft(deadline: string): number {
   const today = new Date();
@@ -30,7 +33,13 @@ function getProgress(createdAt: string, deadline: string): number {
   return Math.min(100, Math.max(0, ((Date.now() - start) / (end - start)) * 100));
 }
 
-export default function SkillCard({ skill }: { skill: Skill }) {
+export default function SkillCard({
+  skill,
+  coparticipants = [],
+}: {
+  skill: Skill;
+  coparticipants?: Coparticipant[];
+}) {
   const [isPending, startTransition] = useTransition();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
@@ -140,6 +149,16 @@ export default function SkillCard({ skill }: { skill: Skill }) {
             }}
           />
         </div>
+      )}
+
+      {/* Coparticipants */}
+      {coparticipants.length > 0 && (
+        <p className="text-xs" style={{ color: "var(--color-ink-soft)" }}>
+          Mit{" "}
+          {coparticipants
+            .map((p) => `@${p.username}`)
+            .join(", ")}
+        </p>
       )}
 
       {/* Actions */}

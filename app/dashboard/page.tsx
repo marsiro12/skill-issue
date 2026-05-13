@@ -1,25 +1,60 @@
 import { createClient } from "@/lib/supabase/server";
 import SkillModal from "./SkillModal";
 import SkillCard from "./SkillCard";
+import FriendsSection from "./FriendsSection";
+import WishlistSection from "./WishlistSection";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ friendError?: string }>;
+}) {
+  const { friendError } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profile }, { data: skills }] = await Promise.all([
-    supabase
+  const [{ data: profile }, { data: skills }, { data: followingRows }, { data: followerRows }] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("username, display_name")
+        .eq("id", user!.id)
+        .single(),
+      supabase
+        .from("skills")
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("follows")
+        .select("following_id")
+        .eq("follower_id", user!.id),
+      supabase
+        .from("follows")
+        .select("follower_id")
+        .eq("following_id", user!.id),
+    ]);
+
+  const followingIds = followingRows?.map((r) => r.following_id) ?? [];
+  const followerIdSet = new Set(followerRows?.map((r) => r.follower_id) ?? []);
+
+  let iFollowProfiles: Array<{
+    id: string;
+    username: string;
+    display_name: string | null;
+  }> = [];
+  if (followingIds.length > 0) {
+    const { data } = await supabase
       .from("profiles")
-      .select("username, display_name")
-      .eq("id", user!.id)
-      .single(),
-    supabase
-      .from("skills")
-      .select("*")
-      .eq("user_id", user!.id)
-      .order("created_at", { ascending: false }),
-  ]);
+      .select("id, username, display_name")
+      .in("id", followingIds);
+    iFollowProfiles = data ?? [];
+  }
+
+  const mutualFriends = iFollowProfiles.filter((p) => followerIdSet.has(p.id));
+  const pendingFollows = iFollowProfiles.filter((p) => !followerIdSet.has(p.id));
 
   const activeSkills = skills?.filter((s) => s.status === "active") ?? [];
   const completedSkills = skills?.filter((s) => s.status === "completed") ?? [];
@@ -27,6 +62,49 @@ export default async function DashboardPage() {
     (sum, s) => sum + (s.points_earned ?? 0),
     0
   );
+
+  // Coparticipants: everyone else sharing the same skill group
+  const mySkills = skills ?? [];
+  const uniqueRootIds = [
+    ...new Set(mySkills.map((s) => s.source_skill_id ?? s.id)),
+  ];
+  const coparticipantsByRoot: Record<
+    string,
+    Array<{ username: string; display_name: string | null }>
+  > = {};
+
+  if (uniqueRootIds.length > 0) {
+    const { data: relatedSkills } = await supabase
+      .from("skills")
+      .select("id, source_skill_id, user_id")
+      .or(
+        `id.in.(${uniqueRootIds.join(",")}),source_skill_id.in.(${uniqueRootIds.join(",")})`
+      )
+      .neq("user_id", user!.id);
+
+    const relatedUserIds = [
+      ...new Set(relatedSkills?.map((r) => r.user_id) ?? []),
+    ];
+
+    if (relatedUserIds.length > 0) {
+      const { data: relatedProfiles } = await supabase
+        .from("profiles")
+        .select("id, username, display_name")
+        .in("id", relatedUserIds);
+
+      for (const r of relatedSkills ?? []) {
+        const rootId = r.source_skill_id ?? r.id;
+        if (!coparticipantsByRoot[rootId]) coparticipantsByRoot[rootId] = [];
+        const p = relatedProfiles?.find((pr) => pr.id === r.user_id);
+        if (
+          p &&
+          !coparticipantsByRoot[rootId].find((cp) => cp.username === p.username)
+        ) {
+          coparticipantsByRoot[rootId].push(p);
+        }
+      }
+    }
+  }
 
   return (
     <main className="min-h-screen" style={{ background: "var(--color-bg)" }}>
@@ -141,7 +219,13 @@ export default async function DashboardPage() {
           ) : (
             <div className="grid sm:grid-cols-2 gap-3 mb-6">
               {activeSkills.map((skill) => (
-                <SkillCard key={skill.id} skill={skill} />
+                <SkillCard
+                  key={skill.id}
+                  skill={skill}
+                  coparticipants={
+                    coparticipantsByRoot[skill.source_skill_id ?? skill.id] ?? []
+                  }
+                />
               ))}
             </div>
           )}
@@ -157,11 +241,25 @@ export default async function DashboardPage() {
               </h2>
               <div className="grid sm:grid-cols-2 gap-3">
                 {completedSkills.map((skill) => (
-                  <SkillCard key={skill.id} skill={skill} />
+                  <SkillCard
+                    key={skill.id}
+                    skill={skill}
+                    coparticipants={
+                      coparticipantsByRoot[skill.source_skill_id ?? skill.id] ?? []
+                    }
+                  />
                 ))}
               </div>
             </div>
           )}
+
+          <WishlistSection />
+
+          <FriendsSection
+            mutualFriends={mutualFriends}
+            pendingFollows={pendingFollows}
+            friendError={friendError}
+          />
         </div>
       </div>
     </main>

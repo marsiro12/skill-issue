@@ -65,6 +65,45 @@ export async function deleteSkill(skillId: string) {
   revalidatePath("/dashboard");
 }
 
+export async function joinSkill(skillId: string, _formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: original } = await supabase
+    .from("skills")
+    .select("user_id, name, description, base_points, deadline")
+    .eq("id", skillId)
+    .single();
+
+  if (!original) throw new Error("Skill nicht gefunden");
+  if (original.user_id === user.id) throw new Error("Das ist dein eigener Skill");
+
+  const { data: existing } = await supabase
+    .from("skills")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("source_skill_id", skillId)
+    .maybeSingle();
+
+  if (!existing) {
+    await supabase.from("skills").insert({
+      user_id: user.id,
+      name: original.name,
+      description: original.description,
+      base_points: original.base_points,
+      deadline: original.deadline,
+      status: "active",
+      source_skill_id: skillId,
+    });
+  }
+
+  revalidatePath("/dashboard");
+  redirect("/dashboard");
+}
+
 export async function completeSkill(skillId: string) {
   const supabase = await createClient();
   const {
