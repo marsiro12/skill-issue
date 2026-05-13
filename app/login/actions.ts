@@ -14,17 +14,14 @@ export async function login(formData: FormData) {
     });
 
     if (error) {
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "MISSING";
-      redirect(`/login?error=${encodeURIComponent(`[${url.slice(0, 40)}] ${error.message}`)}`);
+      redirect(`/login?error=${encodeURIComponent(error.message)}`);
     }
 
     revalidatePath("/", "layout");
     redirect("/dashboard");
   } catch (e) {
     unstable_rethrow(e);
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "MISSING";
-    const msg = e instanceof Error ? e.message : String(e);
-    redirect(`/login?error=${encodeURIComponent(`[${url.slice(0, 30)}] ${msg}`)}`);
+    redirect(`/login?error=${encodeURIComponent("Verbindungsfehler. Bitte versuche es erneut.")}`);
   }
 }
 
