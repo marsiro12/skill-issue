@@ -49,7 +49,8 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/login") ||
     path.startsWith("/signup") ||
     path.startsWith("/auth") ||
-    path.startsWith("/api");
+    path.startsWith("/api") ||
+    path === "/manifest.webmanifest";
 
   // Not logged in & trying to access a protected page → send to login
   if (!user && !isPublic) {
