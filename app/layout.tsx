@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegister from "./ServiceWorkerRegister";
+import InstallPrompt from "./InstallPrompt";
 
 const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
@@ -23,6 +24,7 @@ export default function RootLayout({
     <html lang="de" className={bricolage.variable}>
       <body className="antialiased">
         <ServiceWorkerRegister />
+        <InstallPrompt />
         {children}
       </body>
     </html>
