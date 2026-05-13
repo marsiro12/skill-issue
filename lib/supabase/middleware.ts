@@ -48,7 +48,8 @@ export async function updateSession(request: NextRequest) {
     path === "/" ||
     path.startsWith("/login") ||
     path.startsWith("/signup") ||
-    path.startsWith("/auth");
+    path.startsWith("/auth") ||
+    path.startsWith("/api");
 
   // Not logged in & trying to access a protected page → send to login
   if (!user && !isPublic) {
