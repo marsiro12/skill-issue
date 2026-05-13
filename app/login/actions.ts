@@ -14,7 +14,8 @@ export async function login(formData: FormData) {
     });
 
     if (error) {
-      redirect(`/login?error=${encodeURIComponent(error.message)}`);
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "MISSING";
+      redirect(`/login?error=${encodeURIComponent(`[${url.slice(0, 40)}] ${error.message}`)}`);
     }
 
     revalidatePath("/", "layout");
